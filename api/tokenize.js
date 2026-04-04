@@ -44,6 +44,8 @@ Example format: [{"text": "Hello", "id": 15496}, {"text": " world", "id": 995}]`
     })
 
     const groqData = await groqRes.json()
+     console.log('Groq status:', response.status)
+    console.log('Groq response:', JSON.stringify(data))
     const content = groqData.choices[0].message.content.trim()
     const clean = content.replace(/```json|```/g, '').trim()
     const tokens = JSON.parse(clean)
