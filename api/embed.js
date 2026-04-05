@@ -22,6 +22,8 @@ export default async function handler(req, res) {
     )
 
     const embeddings = await response.json()
+    console.log('Embed status:', response.status)
+    console.log('Embed response:', JSON.stringify(embeddings))
 
     if (embeddings.error) {
       return res.status(500).json({ error: embeddings.error })
