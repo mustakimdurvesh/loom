@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+      'https://router.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
       {
         method: 'POST',
         headers: {
