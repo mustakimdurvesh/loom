@@ -1,6 +1,6 @@
 {
   "type": "module",
   "dependencies": {
-    "gpt-tokenizer": "^3.4.0"
+    "gpt-tokenizer": "^2.9.0"
   }
 }
