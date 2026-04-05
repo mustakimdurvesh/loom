@@ -9,55 +9,55 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Correct HF inference endpoint for feature extraction
     const response = await fetch(
-      'https://router.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
+      'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction',
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.HF_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ inputs: words })
+        body: JSON.stringify({
+          inputs: words,
+          options: { wait_for_model: true }
+        })
       }
     )
 
-    const embeddings = await response.json()
-    console.log('Embed status:', response.status)
-    console.log('Embed response:', JSON.stringify(embeddings))
-
-    if (embeddings.error) {
-      return res.status(500).json({ error: embeddings.error })
+    if (!response.ok) {
+      const text = await response.text()
+      console.error('HF error:', response.status, text)
+      return res.status(500).json({ error: `HF API error: ${response.status} ${text}` })
     }
 
-    // PCA: reduce to 2D on the server
-    const reduced = pca(embeddings)
+    const embeddings = await response.json()
 
-    // Cosine similarity matrix
+    if (!Array.isArray(embeddings)) {
+      console.error('Unexpected HF response:', embeddings)
+      return res.status(500).json({ error: 'Unexpected response from HF' })
+    }
+
+    const reduced = pca(embeddings)
     const similarity = cosineSimilarityMatrix(embeddings)
 
     res.status(200).json({ words, embeddings: reduced, similarity })
 
   } catch (error) {
-    console.error('Embed error:', error)
-    console.error('Embed error message:', error.message)
+    console.error('Embed error:', error.message)
     console.error('Embed stack:', error.stack)
-
-    res.status(500).json({ error: 'Could not fetch embeddings' })
+    res.status(500).json({ error: error.message })
   }
 }
 
-// Simple PCA — project onto first 2 principal components
 function pca(embeddings) {
   const n = embeddings.length
   const dim = embeddings[0].length
 
-  // Center the data
   const mean = Array(dim).fill(0)
   embeddings.forEach(e => e.forEach((v, i) => mean[i] += v / n))
   const centered = embeddings.map(e => e.map((v, i) => v - mean[i]))
 
-  // Covariance matrix (dim x dim) — too large, use power iteration instead
-  // Project onto 2 random directions then refine (simplified PCA)
   const pc1 = powerIteration(centered, dim, null)
   const pc2 = powerIteration(centered, dim, pc1)
 
@@ -96,8 +96,8 @@ function normalize(v) {
 }
 
 function cosineSimilarityMatrix(embeddings) {
-  return embeddings.map((a, i) =>
-    embeddings.map((b, j) => {
+  return embeddings.map(a =>
+    embeddings.map(b => {
       const dotAB = dot(a, b)
       const magA = Math.sqrt(dot(a, a))
       const magB = Math.sqrt(dot(b, b))
