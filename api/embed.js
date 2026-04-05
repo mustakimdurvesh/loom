@@ -39,6 +39,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Embed error:', error)
+    console.error('Embed error message:', error.message)
+    console.error('Embed stack:', error.stack)
+
     res.status(500).json({ error: 'Could not fetch embeddings' })
   }
 }
