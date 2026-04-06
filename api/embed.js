@@ -11,20 +11,19 @@ export default async function handler(req, res) {
   try {
     // Correct HF inference endpoint for feature extraction
     const response = await fetch(
-   const response = await fetch(
-  'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2',
-  {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.HF_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      inputs: words,
-      options: { wait_for_model: true }
-    })
-  }
-)
+      'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.HF_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          inputs: words,
+          options: { wait_for_model: true }
+        })
+      }
+    )
 
     if (!response.ok) {
       const text = await response.text()
