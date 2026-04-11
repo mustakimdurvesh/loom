@@ -8,34 +8,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No words provided' })
   }
 
+  if (words.length < 2) {
+    return res.status(400).json({ error: 'Need at least 2 words' })
+  }
+
   try {
-    // Correct HF inference endpoint for feature extraction
-    const response = await fetch(
-      'https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.HF_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          inputs: words,
-          options: { wait_for_model: true }
-        })
-      }
-    )
+    const response = await fetch('https://api.voyageai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.VOYAGE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'voyage-3-lite',
+        input: words
+      })
+    })
 
     if (!response.ok) {
       const text = await response.text()
-      console.error('HF error:', response.status, text)
-      return res.status(500).json({ error: `HF API error: ${response.status} ${text}` })
+      console.error('Voyage error:', response.status, text)
+      return res.status(500).json({ error: `Voyage API error: ${text}` })
     }
 
-    const embeddings = await response.json()
+    const data = await response.json()
+    const embeddings = data.data.map(d => d.embedding)
 
-    if (!Array.isArray(embeddings)) {
-      console.error('Unexpected HF response:', embeddings)
-      return res.status(500).json({ error: 'Unexpected response from HF' })
+    if (!embeddings || !embeddings[0]) {
+      return res.status(500).json({ error: 'No embeddings returned' })
     }
 
     const reduced = pca(embeddings)
@@ -45,7 +45,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Embed error:', error.message)
-    console.error('Embed stack:', error.stack)
     res.status(500).json({ error: error.message })
   }
 }
@@ -70,7 +69,6 @@ function pca(embeddings) {
 function powerIteration(data, dim, orthogonalTo) {
   let v = Array(dim).fill(0).map(() => Math.random() - 0.5)
   v = normalize(v)
-
   for (let iter = 0; iter < 50; iter++) {
     let newV = Array(dim).fill(0)
     data.forEach(e => {
